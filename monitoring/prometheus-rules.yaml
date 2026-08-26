@@ -1,0 +1,69 @@
+groups:
+  - name: slo.donation-service
+    interval: 30s
+    rules:
+      # SLI 1: Taxa de sucesso (1 - error rate) — SLO: 99.5%
+      - record: slo:donation_success_rate:ratio_rate5m
+        expr: |
+          1 - (
+            sum(rate(http_requests_total{job="donation-service",status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="donation-service"}[5m]))
+          )
+
+      # SLI 2: Latência P99 — SLO: < 500ms
+      - record: slo:donation_latency_p99:5m
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket{job="donation-service"}[5m])) by (le)
+          )
+
+      # Error Budget restante (janela 30 dias)
+      - record: slo:donation_error_budget_remaining:ratio
+        expr: |
+          1 - (
+            (1 - slo:donation_success_rate:ratio_rate5m) / (1 - 0.995)
+          )
+
+  - name: alerts.donation-service
+    rules:
+      - alert: DonationServiceHighErrorRate
+        expr: slo:donation_success_rate:ratio_rate5m < 0.995
+        for: 2m
+        labels:
+          severity: critical
+          service: donation-service
+          slo: error-rate
+        annotations:
+          summary: "donation-service abaixo do SLO de taxa de sucesso"
+          description: "Taxa de sucesso atual: {{ $value | humanizePercentage }} (SLO: 99.5%)"
+
+      - alert: DonationServiceHighLatency
+        expr: slo:donation_latency_p99:5m > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          service: donation-service
+          slo: latency
+        annotations:
+          summary: "donation-service P99 acima de 500ms"
+          description: "Latência P99 atual: {{ $value | humanizeDuration }}"
+
+      - alert: DonationServiceErrorBudgetBurning
+        expr: slo:donation_error_budget_remaining:ratio < 0.25
+        for: 5m
+        labels:
+          severity: critical
+          service: donation-service
+        annotations:
+          summary: "Error Budget do donation-service abaixo de 25%"
+          description: "Error Budget restante: {{ $value | humanizePercentage }}"
+
+      - alert: ServiceDown
+        expr: up{job=~"ngo-service|donation-service|volunteer-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Serviço {{ $labels.job }} está down"
+          description: "{{ $labels.instance }} indisponível há mais de 1 minuto"

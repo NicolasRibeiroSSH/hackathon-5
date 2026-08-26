@@ -1,0 +1,139 @@
+{
+  "title": "SolidaryTech — SRE Dashboard",
+  "uid": "solidarytech-sre",
+  "tags": ["sre", "slo", "solidarytech"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "donation-service — Taxa de Sucesso (SLO: 99.5%)",
+      "type": "gauge",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 6 },
+      "targets": [{
+        "expr": "slo:donation_success_rate:ratio_rate5m * 100",
+        "legendFormat": "Success Rate"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 99,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "red",    "value": 0 },
+              { "color": "yellow", "value": 99 },
+              { "color": "green",  "value": 99.5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "donation-service — Latência P99 (SLO: < 500ms)",
+      "type": "gauge",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 6 },
+      "targets": [{
+        "expr": "slo:donation_latency_p99:5m * 1000",
+        "legendFormat": "P99 ms"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "max": 1000,
+          "thresholds": {
+            "steps": [
+              { "color": "green",  "value": 0 },
+              { "color": "yellow", "value": 300 },
+              { "color": "red",    "value": 500 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Error Budget Restante (30 dias)",
+      "type": "gauge",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 6 },
+      "targets": [{
+        "expr": "slo:donation_error_budget_remaining:ratio * 100",
+        "legendFormat": "Budget %"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "red",    "value": 0 },
+              { "color": "yellow", "value": 25 },
+              { "color": "green",  "value": 50 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Serviços UP/DOWN",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 6 },
+      "targets": [{
+        "expr": "up{job=~\"ngo-service|donation-service|volunteer-service\"}",
+        "legendFormat": "{{ job }}"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ]
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "donation-service — Requests/s",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total{job=\"donation-service\"}[1m]))", "legendFormat": "Total RPS" },
+        { "expr": "sum(rate(http_requests_total{job=\"donation-service\",status=~\"5..\"}[1m]))", "legendFormat": "Errors RPS" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "donation-service — Latência (P50 / P95 / P99)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 6, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=\"donation-service\"}[5m])) by (le))", "legendFormat": "P50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"donation-service\"}[5m])) by (le))", "legendFormat": "P95" },
+        { "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"donation-service\"}[5m])) by (le))", "legendFormat": "P99" }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Pods em execução por serviço",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 6 },
+      "targets": [{
+        "expr": "kube_deployment_status_replicas_available{namespace=\"solidarytech-prod\"}",
+        "legendFormat": "{{ deployment }}"
+      }]
+    },
+    {
+      "id": 8,
+      "title": "CPU Usage por serviço",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 6 },
+      "targets": [{
+        "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"solidarytech-prod\"}[5m])) by (pod)",
+        "legendFormat": "{{ pod }}"
+      }]
+    }
+  ]
+}

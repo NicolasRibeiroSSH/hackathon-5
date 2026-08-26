@@ -1,0 +1,44 @@
+replicaCount: 1
+
+image:
+  repository: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/solidarytech-ngo-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets:
+  - name: ecr-secret
+
+service:
+  type: ClusterIP
+  port: 8081
+
+env:
+  - name: PORT
+    value: "8081"
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: app-secrets
+        key: NGO_DATABASE_URL
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "96Mi"
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8081
+  initialDelaySeconds: 20
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8081
+  initialDelaySeconds: 10
+  periodSeconds: 10

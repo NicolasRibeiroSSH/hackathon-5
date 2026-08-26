@@ -1,0 +1,61 @@
+replicaCount: 2
+
+image:
+  repository: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/solidarytech-donation-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets:
+  - name: ecr-secret
+
+service:
+  type: ClusterIP
+  port: 8082
+
+env:
+  - name: PORT
+    value: "8082"
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: app-secrets
+        key: DONATION_DATABASE_URL
+  - name: AWS_SQS_URL
+    valueFrom:
+      secretKeyRef:
+        name: app-secrets
+        key: AWS_SQS_URL
+  - name: AWS_REGION
+    valueFrom:
+      secretKeyRef:
+        name: app-secrets
+        key: AWS_REGION
+
+# Rightsizing: donation-service é Go (baixo consumo de memória)
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8082
+  initialDelaySeconds: 15
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8082
+  initialDelaySeconds: 5
+  periodSeconds: 10

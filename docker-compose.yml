@@ -1,0 +1,181 @@
+services:
+
+  # ── Bancos de dados ──────────────────────────────────────────────────────────
+
+  ngo-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-solidary}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-solidary}
+      POSTGRES_DB: ngo_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ngo_db_data:/var/lib/postgresql/data
+      - ./ngo-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-solidary} -d ngo_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  donation-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-solidary}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-solidary}
+      POSTGRES_DB: donation_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - donation_db_data:/var/lib/postgresql/data
+      - ./donation-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-solidary} -d donation_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/home/dynamodblocal/data"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+
+  # LocalStack para SQS local
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs
+      DEFAULT_REGION: us-east-1
+      EAGER_SERVICE_LOADING: 1
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./scripts/localstack-init.sh:/etc/localstack/init/ready.d/init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs list-queues || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Microserviços ────────────────────────────────────────────────────────────
+
+  ngo-service:
+    build:
+      context: ./ngo-service
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+      DATABASE_URL: postgres://${POSTGRES_USER:-solidary}:${POSTGRES_PASSWORD:-solidary}@ngo-db:5432/ngo_db
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: ngo-service
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local
+    depends_on:
+      ngo-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8081/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  donation-service:
+    build:
+      context: ./donation-service
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: "8082"
+      DATABASE_URL: postgres://${POSTGRES_USER:-solidary}:${POSTGRES_PASSWORD:-solidary}@donation-db:5432/donation_db
+      AWS_REGION: us-east-1
+      AWS_SQS_URL: http://localstack:4566/000000000000/solidary-donations
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: donation-service
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local
+    depends_on:
+      donation-db:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  volunteer-service:
+    build:
+      context: ./volunteer-service
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: "8083"
+      AWS_REGION: us-east-1
+      AWS_DYNAMODB_TABLE: SolidaryTechVolunteers
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DYNAMODB_ENDPOINT: http://dynamodb-local:8000
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: volunteer-service
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local
+    depends_on:
+      dynamodb-local:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8083/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Observabilidade ──────────────────────────────────────────────────────────
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.100.0
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./monitoring/otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus-rules.yaml:/etc/prometheus/rules.yaml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana-provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+
+volumes:
+  ngo_db_data:
+  donation_db_data:
+  dynamodb_data:
+  localstack_data:
+  prometheus_data:
+  grafana_data:

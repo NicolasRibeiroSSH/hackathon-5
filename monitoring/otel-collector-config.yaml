@@ -1,0 +1,51 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+  resource:
+    attributes:
+      - key: project
+        value: SolidaryTech
+        action: upsert
+      - key: cost_center
+        value: NGO-Core
+        action: upsert
+
+exporters:
+  # Datadog APM (ativar em produção com DD_API_KEY)
+  datadog:
+    api:
+      key: ${DD_API_KEY}
+      site: datadoghq.com
+  # Prometheus local
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+  # Debug local
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [datadog, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus, debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]

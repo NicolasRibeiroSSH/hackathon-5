@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: solidarytech-prod
+  labels:
+    project: solidarytech
+    environment: prod
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: solidarytech-prod
+data:
+  NGO_SERVICE_URL: "http://ngo-service:8081"
+  DONATION_SERVICE_URL: "http://donation-service:8082"
+  VOLUNTEER_SERVICE_URL: "http://volunteer-service:8083"
+  AWS_REGION: "us-east-1"
+  ENVIRONMENT: "prod"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring:4318"

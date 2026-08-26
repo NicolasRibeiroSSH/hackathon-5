@@ -1,0 +1,6 @@
+apiVersion: v2
+name: donation-service
+description: SolidaryTech Donation Service — Hot Path
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,0 +1,49 @@
+replicaCount: 1
+
+image:
+  repository: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/solidarytech-volunteer-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets:
+  - name: ecr-secret
+
+service:
+  type: ClusterIP
+  port: 8083
+
+env:
+  - name: PORT
+    value: "8083"
+  - name: AWS_DYNAMODB_TABLE
+    valueFrom:
+      secretKeyRef:
+        name: app-secrets
+        key: DYNAMODB_TABLE
+  - name: AWS_REGION
+    valueFrom:
+      secretKeyRef:
+        name: app-secrets
+        key: AWS_REGION
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "96Mi"
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8083
+  initialDelaySeconds: 20
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8083
+  initialDelaySeconds: 10
+  periodSeconds: 10
