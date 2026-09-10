@@ -6,6 +6,7 @@ import logging
 import boto3
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+from prometheus_flask_exporter import PrometheusMetrics
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
@@ -13,6 +14,7 @@ log = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
+PrometheusMetrics(app)
 
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 DYNAMODB_TABLE = os.getenv("AWS_DYNAMODB_TABLE")

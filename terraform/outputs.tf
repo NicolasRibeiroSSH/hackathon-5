@@ -26,3 +26,11 @@ output "k8s_node_dr_public_ip" {
 output "tfstate_bucket" {
   value = module.tfstate_backend.bucket_name
 }
+
+output "cicd_pipelines" {
+  value = module.cicd.pipeline_names
+}
+
+output "cicd_artifacts_bucket" {
+  value = module.cicd.artifacts_bucket
+}

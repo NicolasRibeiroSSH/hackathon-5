@@ -5,8 +5,12 @@ terraform {
 }
 
 resource "aws_s3_bucket" "tfstate" {
-  bucket = "${var.project_name}-${var.environment}-tfstate"
+  bucket = "${var.project_name}-${var.environment}-tfstate-${var.account_id}"
   tags   = { Name = "${var.project_name}-${var.environment}-tfstate" }
+
+  lifecycle {
+    ignore_changes = [bucket]
+  }
 }
 
 resource "aws_s3_bucket_versioning" "tfstate" {

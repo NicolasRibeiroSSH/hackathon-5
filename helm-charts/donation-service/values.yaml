@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/solidarytech-donation-service
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   tag: "latest"
 
 imagePullSecrets:

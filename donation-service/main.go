@@ -3,11 +3,9 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Donation struct {
@@ -65,6 +64,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", app.HealthHandler)
 	mux.HandleFunc("/donations", app.DonationHandler)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	log.Printf("donation-service rodando na porta %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))

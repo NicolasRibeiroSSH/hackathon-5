@@ -56,13 +56,13 @@ variable "rds_instances" {
   default = {
     ngo = {
       allocated_storage = 20
-      engine_version    = "16.3"
+      engine_version    = "16.9"
       instance_class    = "db.t3.micro"
       db_name           = "ngo_db"
     }
     donation = {
       allocated_storage = 20
-      engine_version    = "16.3"
+      engine_version    = "16.9"
       instance_class    = "db.t3.micro"
       db_name           = "donation_db"
     }
@@ -107,4 +107,22 @@ variable "budget_monthly_limit" {
 variable "budget_alert_emails" {
   type    = list(string)
   default = []
+}
+
+variable "github_owner" {
+  type = string
+}
+
+variable "github_repo" {
+  type = string
+}
+
+variable "github_branch" {
+  type    = string
+  default = "main"
+}
+
+variable "github_connection_arn" {
+  type        = string
+  description = "ARN da CodeStar Connection com o GitHub (criada manualmente no console)"
 }

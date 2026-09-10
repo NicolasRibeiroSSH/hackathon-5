@@ -12,12 +12,12 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "solidarytech-prod-tfstate"
+    bucket         = "solidarytech-prod-tfstate-964177143569"
     key            = "terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "solidarytech-prod-tflock"
     encrypt        = true
-    profile        = "default"
+    profile        = "devops"
   }
 }
 
@@ -59,6 +59,7 @@ module "tfstate_backend" {
   source       = "./modules/tfstate-backend"
   project_name = var.project_name
   environment  = var.environment
+  account_id   = var.aws_account_id
 }
 
 module "vpc" {
@@ -158,5 +159,37 @@ module "ec2_k8s_dr" {
 
   providers = {
     aws = aws.dr
+  }
+}
+
+# ── CI/CD ─────────────────────────────────────────────────────────────────────
+
+module "cicd" {
+  source               = "./modules/cicd"
+  project_name         = var.project_name
+  environment          = var.environment
+  aws_account_id       = var.aws_account_id
+  aws_region           = var.aws_region
+  github_owner         = var.github_owner
+  github_repo          = var.github_repo
+  github_branch        = var.github_branch
+  github_connection_arn = var.github_connection_arn
+
+  services = {
+    donation-service = {
+      ecr_repo   = "solidarytech-donation-service"
+      build_spec = "go"
+      port       = 8082
+    }
+    ngo-service = {
+      ecr_repo   = "solidarytech-ngo-service"
+      build_spec = "python"
+      port       = 8081
+    }
+    volunteer-service = {
+      ecr_repo   = "solidarytech-volunteer-service"
+      build_spec = "python"
+      port       = 8083
+    }
   }
 }
