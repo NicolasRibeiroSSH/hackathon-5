@@ -15,7 +15,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-	httptrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http"
 )
 
 type Donation struct {
@@ -66,7 +65,7 @@ func main() {
 
 	app := &App{DB: db, SqsSvc: sqsSvc, SqsQueueURL: queueURL}
 
-	mux := httptrace.NewServeMux()
+	mux := http.NewServeMux()
 	mux.HandleFunc("/health", app.HealthHandler)
 	mux.HandleFunc("/donations", app.DonationHandler)
 	mux.Handle("/metrics", promhttp.Handler())
