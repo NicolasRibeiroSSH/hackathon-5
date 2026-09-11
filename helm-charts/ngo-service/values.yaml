@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/solidarytech-ngo-service
+  repository: 964177143569.dkr.ecr.us-east-1.amazonaws.com/solidarytech-ngo-service
   pullPolicy: Always
   tag: "latest"
 
