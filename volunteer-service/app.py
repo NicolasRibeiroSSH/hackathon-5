@@ -7,6 +7,10 @@ import boto3
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from prometheus_flask_exporter import PrometheusMetrics
+from ddtrace import patch_all
+from ddtrace.contrib.flask import TraceMiddleware
+
+patch_all()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
@@ -15,6 +19,7 @@ load_dotenv()
 
 app = Flask(__name__)
 PrometheusMetrics(app)
+TraceMiddleware(app, service='volunteer-service', distributed_tracing=True)
 
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 DYNAMODB_TABLE = os.getenv("AWS_DYNAMODB_TABLE")

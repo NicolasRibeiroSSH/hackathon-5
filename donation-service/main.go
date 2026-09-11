@@ -14,6 +14,8 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	httptrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http"
 )
 
 type Donation struct {
@@ -33,6 +35,9 @@ type App struct {
 
 func main() {
 	_ = godotenv.Load()
+
+	tracer.Start(tracer.WithServiceName("donation-service"), tracer.WithAgentAddr("datadog-agent.datadog.svc.cluster.local:8126"))
+	defer tracer.Stop()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -61,7 +66,7 @@ func main() {
 
 	app := &App{DB: db, SqsSvc: sqsSvc, SqsQueueURL: queueURL}
 
-	mux := http.NewServeMux()
+	mux := httptrace.NewServeMux()
 	mux.HandleFunc("/health", app.HealthHandler)
 	mux.HandleFunc("/donations", app.DonationHandler)
 	mux.Handle("/metrics", promhttp.Handler())
