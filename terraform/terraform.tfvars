@@ -1,8 +1,13 @@
-aws_account_id       = "SUBSTITUIR"
+aws_account_id       = "964177143569"
 aws_region           = "us-east-1"
 dr_region            = "us-east-2"
 project_name         = "solidarytech"
 environment          = "prod"
+aws_profile          = "devops"
 ssh_key_name         = "solidarytech-key"
 budget_monthly_limit = 200
 budget_alert_emails  = ["devops@solidarytech.org"]
+github_owner         = "NicolasRibeiroSSH"
+github_repo          = "hackathon-5"
+github_branch        = "main"
+github_connection_arn = "arn:aws:codestar-connections:us-east-1:964177143569:connection/ab64809e-fd65-492c-a45e-8e23e028ec95"

@@ -128,7 +128,7 @@ resource "aws_iam_role_policy" "codepipeline" {
       {
         Effect   = "Allow"
         Action   = ["codestar-connections:UseConnection"]
-        Resource = var.github_connection_arn
+        Resource = "arn:aws:codestar-connections:${var.aws_region}:${var.aws_account_id}:connection/*"
       }
     ]
   })
@@ -342,9 +342,15 @@ locals {
     phases = {
       install = {
         runtime-versions = { golang = "1.21" }
+        commands = [
+          "curl -sL https://go.dev/dl/go1.24.4.linux-amd64.tar.gz | tar -C /usr/local -xz",
+          "export PATH=/usr/local/go/bin:$PATH",
+          "go version"
+        ]
       }
       build = {
         commands = [
+          "export PATH=/usr/local/go/bin:$PATH",
           "cd $SERVICE",
           "go mod download",
           "go build ./...",
