@@ -7,6 +7,7 @@ require (
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/joho/godotenv v1.5.1
 	github.com/prometheus/client_golang v1.22.0
+	gopkg.in/DataDog/dd-trace-go.v1 v1.64.1
 )
 
 require (

@@ -339,22 +339,26 @@ resource "aws_codepipeline" "service" {
 locals {
   buildspec_test_go = yamlencode({
     version = "0.2"
+    env = {
+      variables = {
+        GOROOT = "/usr/local/go"
+        PATH   = "/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      }
+    }
     phases = {
       install = {
-        runtime-versions = { golang = "1.21" }
         commands = [
           "curl -sL https://go.dev/dl/go1.24.4.linux-amd64.tar.gz | tar -C /usr/local -xz",
-          "export PATH=/usr/local/go/bin:$PATH",
-          "go version"
+          "/usr/local/go/bin/go version"
         ]
       }
       build = {
         commands = [
-          "export PATH=/usr/local/go/bin:$PATH",
           "cd $SERVICE",
-          "go mod download",
-          "go build ./...",
-          "go test ./... -v 2>&1 || echo 'No tests found'"
+          "/usr/local/go/bin/go mod tidy",
+          "/usr/local/go/bin/go mod download",
+          "/usr/local/go/bin/go build ./...",
+          "/usr/local/go/bin/go test ./... -v 2>&1 || echo 'No tests found'"
         ]
       }
     }
