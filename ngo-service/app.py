@@ -8,8 +8,6 @@ from dotenv import load_dotenv
 from prometheus_flask_exporter import PrometheusMetrics
 import logging
 from ddtrace import patch_all
-from ddtrace.contrib.flask import TraceMiddleware
-
 patch_all()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,7 +17,6 @@ load_dotenv()
 
 app = Flask(__name__)
 PrometheusMetrics(app)
-TraceMiddleware(app, service='ngo-service', distributed_tracing=True)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
