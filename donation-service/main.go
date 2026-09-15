@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"log"
@@ -14,7 +15,16 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Donation struct {
@@ -32,11 +42,60 @@ type App struct {
 	SqsQueueURL string
 }
 
+func initTracer(ctx context.Context) (func(context.Context) error, error) {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "otel-collector.monitoring:4317"
+	}
+
+	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
+	if err != nil {
+		return nil, err
+	}
+
+	res := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceName(getEnv("OTEL_SERVICE_NAME", "donation-service")),
+		semconv.ServiceVersion(getEnv("OTEL_SERVICE_VERSION", "1.0.0")),
+		semconv.DeploymentEnvironment(getEnv("OTEL_ENV", "prod")),
+	)
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+	)
+
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	))
+
+	return tp.Shutdown, nil
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
 func main() {
 	_ = godotenv.Load()
 
-	tracer.Start(tracer.WithServiceName("donation-service"), tracer.WithAgentAddr("datadog-agent.datadog.svc.cluster.local:8126"))
-	defer tracer.Stop()
+	ctx := context.Background()
+	shutdown, err := initTracer(ctx)
+	if err != nil {
+		log.Printf("Aviso: falha ao inicializar tracer: %v", err)
+	} else {
+		defer shutdown(ctx)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -66,8 +125,8 @@ func main() {
 	app := &App{DB: db, SqsSvc: sqsSvc, SqsQueueURL: queueURL}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", app.HealthHandler)
-	mux.HandleFunc("/donations", app.DonationHandler)
+	mux.Handle("/health", otelhttp.NewHandler(http.HandlerFunc(app.HealthHandler), "health"))
+	mux.Handle("/donations", otelhttp.NewHandler(http.HandlerFunc(app.DonationHandler), "donations"))
 	mux.Handle("/metrics", promhttp.Handler())
 
 	log.Printf("donation-service rodando na porta %s", port)
@@ -90,7 +149,7 @@ func (a *App) DonationHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		d.Status = "APPROVED" // Simulação de gateway de pagamento
+		d.Status = "APPROVED"
 		err := a.DB.QueryRow(
 			"INSERT INTO donations (ngo_id, amount, donor_name, status) VALUES ($1, $2, $3, $4) RETURNING id, created_at",
 			d.NgoID, d.Amount, d.DonorName, d.Status,

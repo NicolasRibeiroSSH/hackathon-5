@@ -18,9 +18,6 @@ processors:
       - key: project
         value: SolidaryTech
         action: upsert
-      - key: cost_center
-        value: NGO-Core
-        action: upsert
 
 exporters:
   # Datadog APM (ativar em produção com DD_API_KEY)

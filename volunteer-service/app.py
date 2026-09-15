@@ -7,15 +7,44 @@ import boto3
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from prometheus_flask_exporter import PrometheusMetrics
-from ddtrace import patch_all
-patch_all()
+
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.propagate import set_global_textmap
+from opentelemetry.propagators.composite import CompositePropagator
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+from opentelemetry.baggage.propagation import W3CBaggagePropagator
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
 
 load_dotenv()
 
+_resource = Resource.create({
+    "service.name": os.getenv("OTEL_SERVICE_NAME", "volunteer-service"),
+    "service.version": os.getenv("OTEL_SERVICE_VERSION", "1.0.0"),
+    "deployment.environment": os.getenv("OTEL_ENV", "prod"),
+})
+_exporter = OTLPSpanExporter(
+    endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector.monitoring:4317"),
+    insecure=True,
+)
+_provider = TracerProvider(resource=_resource)
+_provider.add_span_processor(BatchSpanProcessor(_exporter))
+trace.set_tracer_provider(_provider)
+set_global_textmap(CompositePropagator([
+    TraceContextTextMapPropagator(),
+    W3CBaggagePropagator(),
+]))
+
 app = Flask(__name__)
+FlaskInstrumentor().instrument_app(app)
+RequestsInstrumentor().instrument()
 PrometheusMetrics(app)
 
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
@@ -73,5 +102,7 @@ def get_volunteers_by_ngo(ngo_id):
         return jsonify({"error": "Erro interno"}), 500
 
 if __name__ == '__main__':
+    import atexit
+    atexit.register(_provider.shutdown)
     port = int(os.getenv("PORT", 8083))
     app.run(host='0.0.0.0', port=port)

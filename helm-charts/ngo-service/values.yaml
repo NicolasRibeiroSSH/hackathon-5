@@ -20,6 +20,14 @@ env:
       secretKeyRef:
         name: app-secrets
         key: NGO_DATABASE_URL
+  - name: OTEL_SERVICE_NAME
+    value: "ngo-service"
+  - name: OTEL_SERVICE_VERSION
+    value: "1.0.0"
+  - name: OTEL_ENV
+    value: "prod"
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "otel-collector.monitoring:4317"
 
 resources:
   requests:

@@ -25,6 +25,14 @@ env:
       secretKeyRef:
         name: app-secrets
         key: AWS_REGION
+  - name: OTEL_SERVICE_NAME
+    value: "volunteer-service"
+  - name: OTEL_SERVICE_VERSION
+    value: "1.0.0"
+  - name: OTEL_ENV
+    value: "prod"
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "otel-collector.monitoring:4317"
 
 resources:
   requests:
