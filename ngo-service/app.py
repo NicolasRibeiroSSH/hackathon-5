@@ -19,7 +19,6 @@ from opentelemetry.propagators.b3 import B3MultiFormat
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
-from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
@@ -45,7 +44,6 @@ set_global_textmap(CompositePropagator([
 
 app = Flask(__name__)
 FlaskInstrumentor().instrument_app(app)
-RequestsInstrumentor().instrument()
 PrometheusMetrics(app)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
