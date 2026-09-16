@@ -11,4 +11,4 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY --from=builder /root/.local /root/.local
 COPY . .
 EXPOSE 8081
-CMD ["gunicorn", "--bind", "0.0.0.0:8081", "--workers", "2", "--timeout", "60", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8081", "--workers", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
