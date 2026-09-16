@@ -33,6 +33,8 @@ env:
     value: "prod"
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: "otel-collector-opentelemetry-collector.monitoring:4317"
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: "grpc"
 
 resources:
   requests:
