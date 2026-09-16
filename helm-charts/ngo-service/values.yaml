@@ -27,7 +27,7 @@ env:
   - name: OTEL_ENV
     value: "prod"
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: "otel-collector-opentelemetry-collector.monitoring:4317"
+    value: "http://otel-collector-opentelemetry-collector.monitoring:4318/v1/traces"
 
 resources:
   requests:

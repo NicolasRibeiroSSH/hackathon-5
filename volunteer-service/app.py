@@ -12,7 +12,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.propagate import set_global_textmap
 from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
@@ -30,8 +30,7 @@ _resource = Resource.create({
     "deployment.environment": os.getenv("OTEL_ENV", "prod"),
 })
 _exporter = OTLPSpanExporter(
-    endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector.monitoring:4317"),
-    insecure=True,
+    endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector-opentelemetry-collector.monitoring:4318/v1/traces"),
 )
 _provider = TracerProvider(resource=_resource)
 _provider.add_span_processor(BatchSpanProcessor(_exporter))
