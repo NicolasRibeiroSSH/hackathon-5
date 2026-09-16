@@ -17,6 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "{{ .Values.service.port }}"
+        ad.datadoghq.com/{{ .Release.Name }}.logs: '[{"source":"python","service":"{{ .Release.Name }}"}]'
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
