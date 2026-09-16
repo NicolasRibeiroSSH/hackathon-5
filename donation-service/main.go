@@ -45,7 +45,7 @@ type App struct {
 func initTracer(ctx context.Context) (func(context.Context) error, error) {
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if endpoint == "" {
-		endpoint = "otel-collector.monitoring:4317"
+		endpoint = "otel-collector-opentelemetry-collector.monitoring:4317"
 	}
 
 	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))

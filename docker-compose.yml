@@ -72,9 +72,9 @@ services:
     environment:
       PORT: "8081"
       DATABASE_URL: postgres://${POSTGRES_USER:-solidary}:${POSTGRES_PASSWORD:-solidary}@ngo-db:5432/ngo_db
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
       OTEL_SERVICE_NAME: ngo-service
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local
+      OTEL_ENV: local
     depends_on:
       ngo-db:
         condition: service_healthy
@@ -97,9 +97,9 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_ENDPOINT_URL: http://localstack:4566
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
       OTEL_SERVICE_NAME: donation-service
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local
+      OTEL_ENV: local
     depends_on:
       donation-db:
         condition: service_healthy
@@ -123,9 +123,9 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_DYNAMODB_ENDPOINT: http://dynamodb-local:8000
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
       OTEL_SERVICE_NAME: volunteer-service
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local
+      OTEL_ENV: local
     depends_on:
       dynamodb-local:
         condition: service_started

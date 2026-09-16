@@ -17,4 +17,4 @@ data:
   VOLUNTEER_SERVICE_URL: "http://volunteer-service:8083"
   AWS_REGION: "us-east-1"
   ENVIRONMENT: "prod"
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring:4318"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "otel-collector-opentelemetry-collector.monitoring:4317"
